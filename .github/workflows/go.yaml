@@ -7,11 +7,20 @@ on:
   pull_request:
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
+    - name: caching
+      uses: actions/cache@v3
+      with:
+      path: |
+        ~/.cache/go-build
+        ~/go/pkg/mod
+      key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      restore-keys: |
+        ${{ runner.os }}-go
 
     - name: Set up Go
       uses: actions/setup-go@v4
