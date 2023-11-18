@@ -2,12 +2,11 @@ package radarr
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 )
 
-type ParseError struct {
-	msg string
-}
+type ParseError struct{}
 
 func (pe *ParseError) Error() string {
 	return "Unable to parse webhook"
@@ -84,19 +83,21 @@ type Data struct {
 	Release            *Release             `json:"release,omitempty"`
 	RemoteMovie        *RemoteMovie         `json:"remoteMovie,omitempty"`
 	RenamedMovieFiles  []*RenamedMovieFiles `json:"renamedMovieFiles,omitempty"`
+	ApplicationURL     string               `json:"applicationUrl,omitempty"`
 }
 
 func ParseWebhook(body []byte) (*Data, error) {
 	d := Data{}
+	fmt.Println(string(body))
 
 	err := json.Unmarshal(body, &d)
 	if err != nil {
-		slog.Error("Invalid JSON")
+		slog.With("package", "radarr").Error("Invalid JSON")
 		return nil, &ParseError{}
 	}
 
 	if d.Movie.ID == 0 {
-		slog.Error("Bad Webhook")
+		slog.With("package", "radarr").Error("Bad Webhook")
 		return nil, &ParseError{}
 	}
 

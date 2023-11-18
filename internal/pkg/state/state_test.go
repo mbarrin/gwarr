@@ -1,99 +1,131 @@
 package state
 
 import (
+	"os"
 	"testing"
 
-	"github.com/mbarrin/gwarr/internal/pkg/radarr"
 	"github.com/stretchr/testify/assert"
 )
 
-var radarrData = radarr.Data{
-	Movie: radarr.Movie{
-		ID:          666,
-		Title:       "Film",
-		Year:        1970,
-		ReleaseDate: "1970-01-01",
-		IMDBID:      "tt8415836",
-	},
-	Release: &radarr.Release{
-		Quality:      "1080p",
-		ReleaseGroup: "legit",
-	},
-	EventType: "Grab",
-}
-
 func TestNew(t *testing.T) {
+	dir, _ := os.MkdirTemp("", "gwarr")
+	defer os.RemoveAll(dir)
+
+	path := dir + "/cache.json"
+
 	tests := map[string]struct {
-		expected Cache
+		expected     State
+		fileContents []byte
 	}{
-		"creates a cache": {expected: Cache{}},
+		"no existing cache": {
+			expected:     State{Path: path, Cache: cache{"radarr": entries{}}},
+			fileContents: nil,
+		},
+		"existing cache": {
+			expected:     State{Path: path, Cache: cache{"radarr": entries{777: {TS: "14"}}}},
+			fileContents: []byte("{\"radarr\":{\"777\":{\"ts\":\"14\"}}}"),
+		},
 	}
 
-	for _, tc := range tests {
-		actual := New()
-		assert.Equal(t, tc.expected, actual)
-	}
-}
-func TestSetRadar(t *testing.T) {
-	tests := map[string]struct {
-		cache    Cache
-		radarr   radarr.Data
-		expected entry
-	}{
-		"add key":          {cache: Cache{}, radarr: radarrData, expected: entry{TS: "123", State: "Grab"}},
-		"add existing key": {cache: Cache{666: {TS: "123", State: "Grab"}}, radarr: radarrData, expected: entry{TS: "123", State: "Grab"}},
-		"change value":     {cache: Cache{666: {TS: "456", State: "Download"}}, radarr: radarrData, expected: entry{TS: "123", State: "Grab"}},
-	}
-
-	for _, tc := range tests {
-		tc.cache.SetRadarr(tc.radarr, "123")
-		assert.Equal(t, tc.expected, tc.cache[666])
-	}
-}
-func TestGetRadarr(t *testing.T) {
-	tests := map[string]struct {
-		cache         Cache
-		radarr        radarr.Data
-		expectedEntry *entry
-		expectedBool  bool
-	}{
-		"sucess":      {cache: Cache{666: {TS: "123", State: "Grab"}}, radarr: radarrData, expectedEntry: &entry{TS: "123", State: "Grab"}, expectedBool: true},
-		"emtpy cache": {cache: Cache{}, radarr: radarrData, expectedEntry: nil, expectedBool: false},
-	}
-
-	for _, tc := range tests {
-		actual, ok := tc.cache.GetRadarr(tc.radarr)
-		assert.Equal(t, tc.expectedEntry, actual)
-		assert.Equal(t, tc.expectedBool, ok)
-	}
-}
-func TestDeleteRadarr(t *testing.T) {
-	tests := map[string]struct {
-		cache    Cache
-		radarr   radarr.Data
-		expected Cache
-	}{
-		"exists":         {cache: Cache{666: {TS: "123", State: "Grab"}}, radarr: radarrData, expected: Cache{}},
-		"multiple":       {cache: Cache{666: {TS: "123", State: "Grab"}, 777: {TS: "456", State: "Grab"}}, radarr: radarrData, expected: Cache{777: {TS: "456", State: "Grab"}}},
-		"does not exist": {cache: Cache{}, radarr: radarrData, expected: Cache{}},
-	}
-
-	for _, tc := range tests {
-		tc.cache.DeleteRadarr(tc.radarr)
-		assert.Equal(t, tc.cache, tc.expected)
+	for name, tc := range tests {
+		if tc.fileContents != nil {
+			os.WriteFile(path, tc.fileContents, 0600)
+		}
+		actual := New(path)
+		assert.Equal(t, tc.expected, actual, name)
 	}
 }
 
-func TestList(t *testing.T) {
+func TestSet(t *testing.T) {
+	dir, _ := os.MkdirTemp("", "gwarr")
+	defer os.RemoveAll(dir)
+
+	path := dir + "/cache.json"
+
 	tests := map[string]struct {
-		cache    Cache
-		expected Cache
+		state        State
+		expected     State
+		fileContents []byte
 	}{
-		"empty": {cache: Cache{}, expected: Cache{}},
+		"add key": {
+			state: New(path),
+			expected: State{
+				Path:  path,
+				Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}}},
+			},
+			fileContents: []byte("{\"radarr\":{\"666\":{\"ts\":\"123\",\"state\":\"Grab\"}}}"),
+		},
+		"add existing key": {
+			state: State{
+				Path:  path,
+				Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}}},
+			},
+			expected: State{
+				Path:  path,
+				Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}}},
+			},
+			fileContents: []byte("{\"radarr\":{\"666\":{\"ts\":\"123\",\"state\":\"Grab\"}}}"),
+		},
+		"change value": {
+			state: State{
+				Path:  path,
+				Cache: cache{"radarr": entries{666: {TS: "456", State: "Download"}}},
+			},
+			expected: State{
+				Path:  path,
+				Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}}},
+			},
+			fileContents: []byte("{\"radarr\":{\"666\":{\"ts\":\"123\",\"state\":\"Grab\"}}}"),
+		},
 	}
 
-	for _, tc := range tests {
-		actual := tc.cache.List()
-		assert.Equal(t, actual, tc.expected)
+	for name, tc := range tests {
+		tc.state.Set("radarr", 666, "123", "Grab")
+		assert.Equal(t, tc.expected, tc.state, name)
+
+		f, err := os.ReadFile(path)
+		if err != nil {
+			assert.Fail(t, "Unable to read file")
+		}
+		assert.Equal(t, f, tc.fileContents, name)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	dir, _ := os.MkdirTemp("", "gwarr")
+	defer os.RemoveAll(dir)
+
+	path := dir + "/cache.json"
+
+	tests := map[string]struct {
+		state        State
+		expected     State
+		fileContents []byte
+	}{
+		"exists": {
+			state:        State{Path: path, Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}}}},
+			expected:     State{Path: path, Cache: cache{"radarr": entries{}}},
+			fileContents: []byte("{\"radarr\":{}}"),
+		},
+		"multiple": {
+			state:        State{Path: path, Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}, 123: {TS: "456", State: "Grab"}}}},
+			expected:     State{Path: path, Cache: cache{"radarr": entries{123: {TS: "456", State: "Grab"}}}},
+			fileContents: []byte("{\"radarr\":{\"123\":{\"ts\":\"456\",\"state\":\"Grab\"}}}"),
+		},
+		"does not exist": {
+			state:        New(path),
+			expected:     New(path),
+			fileContents: []byte("{\"radarr\":{}}"),
+		},
+	}
+
+	for name, tc := range tests {
+		tc.state.Delete("radarr", 666)
+		assert.Equal(t, tc.state, tc.expected)
+		f, err := os.ReadFile(path)
+		if err != nil {
+			assert.Fail(t, "Unable to read file")
+		}
+		assert.Equal(t, f, tc.fileContents, name)
 	}
 }

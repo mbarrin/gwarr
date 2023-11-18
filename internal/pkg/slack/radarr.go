@@ -7,24 +7,19 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/mbarrin/gwarr/internal/pkg/radarr"
 )
 
 func (sc *Client) RadarrPost(rdr radarr.Data) error {
-	ts := ""
-	e, ok := sc.cache.GetRadarr(rdr)
-	if ok {
-		ts = e.Timestamp()
-	}
+	ts := sc.cache.Timestamp("radarr", rdr.Movie.ID)
+
 	var r *http.Request
 	switch rdr.EventType {
 	case "MovieAdded":
 		b := RadarrOnMovieAddBody(sc.channel, rdr, ts)
 		jb, err := json.Marshal(b)
 		if err != nil {
-
 			return err
 		}
 
@@ -39,7 +34,6 @@ func (sc *Client) RadarrPost(rdr radarr.Data) error {
 		b := RadarrOnGrabBody(sc.channel, rdr, ts)
 		jb, err := json.Marshal(b)
 		if err != nil {
-
 			return err
 		}
 
@@ -73,6 +67,8 @@ func (sc *Client) RadarrPost(rdr radarr.Data) error {
 
 		slog.Info("Posting Delete")
 		r = sc.newRequest(jb, "chat.postMessage")
+	case "Test":
+		return nil
 	default:
 		return errors.New("Unable to handle event: " + rdr.EventType)
 	}
@@ -94,9 +90,9 @@ func (sc *Client) RadarrPost(rdr radarr.Data) error {
 
 	if response.OK {
 		if rdr.EventType == "MovieDelete" || rdr.EventType == "Download" {
-			sc.cache.DeleteRadarr(rdr)
+			sc.cache.Delete("radarr", rdr.Movie.ID)
 		} else {
-			sc.cache.SetRadarr(rdr, response.TS)
+			sc.cache.Set("radarr", rdr.Movie.ID, response.TS, rdr.EventType)
 		}
 	}
 
@@ -160,7 +156,7 @@ func radarrMetadata(c string, r radarr.Data) body {
 				Type: "section",
 				Text: &text{
 					Type: "mrkdwn",
-					Text: fmt.Sprintf("%s/movie/%d", os.Getenv("GWARR_RADARR_URL"), r.Movie.ID),
+					Text: fmt.Sprintf("%s/movie/%d", r.ApplicationURL, r.Movie.TMDBID),
 				},
 			},
 			{
