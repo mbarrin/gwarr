@@ -16,12 +16,14 @@ var radarrOnGrab = radarr.Data{
 		Year:        1970,
 		ReleaseDate: "1970-01-01",
 		IMDBID:      "tt8415836",
+		TMDBID:      55,
 	},
 	Release: &radarr.Release{
 		Quality:      "1080p",
 		ReleaseGroup: "legit",
 	},
-	EventType: "Grab",
+	EventType:      "Grab",
+	ApplicationURL: "http://localhost",
 }
 
 var radarrOnDownload = radarr.Data{
@@ -30,12 +32,14 @@ var radarrOnDownload = radarr.Data{
 		Year:        1970,
 		ReleaseDate: "1970-01-01",
 		IMDBID:      "tt8415836",
+		TMDBID:      55,
 	},
 	MovieFile: &radarr.MovieFile{
 		Quality:      "1080p",
 		ReleaseGroup: "legit",
 	},
-	EventType: "Grab",
+	EventType:      "Grab",
+	ApplicationURL: "http://localhost",
 }
 
 var slackOnGrab = body{
@@ -48,6 +52,13 @@ var slackOnGrab = body{
 				Type:  "plain_text",
 				Text:  ":large_orange_circle: Grabbed: Film (1970)",
 				Emoji: true,
+			},
+		},
+		{
+			Type: "section",
+			Text: &text{
+				Type: "mrkdwn",
+				Text: "http://localhost/movie/55",
 			},
 		},
 		{
@@ -93,6 +104,13 @@ var slackOnDownload = body{
 		},
 		{
 			Type: "section",
+			Text: &text{
+				Type: "mrkdwn",
+				Text: "http://localhost/movie/55",
+			},
+		},
+		{
+			Type: "section",
 			Fields: &[]text{
 				{
 					Type: "mrkdwn",
@@ -130,6 +148,13 @@ var slackUpdateOnGrab = body{
 				Type:  "plain_text",
 				Text:  ":large_orange_circle: Grabbed: Film (1970)",
 				Emoji: true,
+			},
+		},
+		{
+			Type: "section",
+			Text: &text{
+				Type: "mrkdwn",
+				Text: "http://localhost/movie/55",
 			},
 		},
 		{
@@ -175,13 +200,13 @@ func TestNew(t *testing.T) {
 				channel: "c1234",
 				token:   "xoxb-123",
 				client:  *http.DefaultClient,
-				cache:   state.Cache{},
+				cache:   state.New(""),
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		actual := New("c1234", "xoxb-123")
+		actual := New("c1234", "xoxb-123", "")
 		assert.Equal(t, tc.expected, actual)
 	}
 }

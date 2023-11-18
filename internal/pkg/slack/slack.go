@@ -37,25 +37,19 @@ type Client struct {
 	channel string
 	token   string
 	client  http.Client
-	cache   state.Cache
+	cache   state.State
 }
 
-func New(channel string, token string) Client {
-	slog.Info("Reading cache")
-	c, err := state.ReadFromDisk()
-	if err != nil {
-		slog.Error("Unable to read cache from disk")
-	}
-
+func New(channel string, token string, cachePath string) Client {
 	sc := Client{
 		url:     "https://slack.com/api/",
 		channel: channel,
 		token:   token,
 		client:  *http.DefaultClient,
-		cache:   c,
+		cache:   state.New(cachePath),
 	}
 
-	slog.Info("Slack client initialised")
+	slog.With("package", "slack").Info("Slack client initialised")
 	return sc
 }
 

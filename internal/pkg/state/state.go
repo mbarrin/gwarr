@@ -2,9 +2,9 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
-
-	"github.com/mbarrin/gwarr/internal/pkg/radarr"
 )
 
 type entry struct {
@@ -12,57 +12,85 @@ type entry struct {
 	State string `json:"state,omitempty"`
 }
 
-type Cache map[int]entry
-
-func New() Cache {
-	return Cache{}
+type State struct {
+	Path  string
+	Cache cache
 }
 
-func (c Cache) SetRadarr(r radarr.Data, ts string) {
-	c[r.Movie.ID] = entry{
-		TS:    ts,
-		State: r.EventType,
+type entries map[int]entry
+type cache map[string]entries
+
+func New(cachePath string) State {
+	s := State{
+		Path:  cachePath,
+		Cache: make(cache),
 	}
-	c.writeToDisk()
-}
+	s.Cache["radarr"] = make(entries)
 
-func (c Cache) GetRadarr(r radarr.Data) (*entry, bool) {
-	if value, exist := c[r.Movie.ID]; exist {
-		return &value, true
-	}
-	return nil, false
-}
-
-func (c Cache) DeleteRadarr(r radarr.Data) {
-	delete(c, r.Movie.ID)
-	c.writeToDisk()
-}
-
-func (c Cache) List() Cache {
-	return c
-}
-
-func (c Cache) writeToDisk() {
-	j, _ := json.Marshal(c)
-	os.WriteFile("cache.json", j, 0600)
-}
-
-func ReadFromDisk() (Cache, error) {
-	c := Cache{}
-
-	f, err := os.ReadFile("cache.json")
+	err := s.read()
 	if err != nil {
-		return c, err
+		slog.With("package", "state").Error("Could not read config: " + err.Error())
 	}
 
-	err = json.Unmarshal(f, &c)
-	if err != nil {
-		return c, err
-	}
+	fmt.Println(s)
 
-	return c, nil
+	return s
 }
 
-func (e *entry) Timestamp() string {
+func (s State) Set(t string, id int, ts string, event string) {
+	s.Cache[t].set(id, ts, event)
+	s.write()
+}
+
+func (s State) Delete(t string, id int) {
+	s.Cache[t].delete(id)
+	s.write()
+}
+
+func (s State) Timestamp(t string, id int) string {
+	e, _ := s.Cache[t].get(id)
 	return e.TS
+}
+
+func (s State) write() {
+	j, err := json.Marshal(s.Cache)
+	if err != nil {
+		slog.Error("Unable to marshall json: " + err.Error())
+	}
+	err = os.WriteFile(s.Path, j, 0600)
+	if err != nil {
+		slog.Error("Unable to write cache: " + err.Error())
+	}
+}
+
+func (s State) read() error {
+	f, err := os.ReadFile(s.Path)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(f, &s.Cache)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c entries) set(key int, ts, state string) {
+	c[key] = entry{
+		TS:    ts,
+		State: state,
+	}
+}
+
+func (c entries) get(key int) (entry, bool) {
+	if value, exist := c[key]; exist {
+		return value, true
+	}
+	return entry{}, false
+}
+
+func (c entries) delete(key int) {
+	delete(c, key)
 }
