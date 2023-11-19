@@ -31,7 +31,7 @@ func TestNew(t *testing.T) {
 		if tc.fileContents != nil {
 			os.WriteFile(path, tc.fileContents, 0600)
 		}
-		actual := New(path)
+		actual := New(path, true, false)
 		assert.Equal(t, tc.expected, actual, name)
 	}
 }
@@ -48,7 +48,7 @@ func TestSet(t *testing.T) {
 		fileContents []byte
 	}{
 		"add key": {
-			state: New(path),
+			state: New(path, true, false),
 			expected: State{
 				Path:  path,
 				Cache: cache{"radarr": entries{666: {TS: "123", State: "Grab"}}},
@@ -113,8 +113,8 @@ func TestDelete(t *testing.T) {
 			fileContents: []byte("{\"radarr\":{\"123\":{\"ts\":\"456\",\"state\":\"Grab\"}}}"),
 		},
 		"does not exist": {
-			state:        New(path),
-			expected:     New(path),
+			state:        New(path, true, false),
+			expected:     New(path, true, false),
 			fileContents: []byte("{\"radarr\":{}}"),
 		},
 	}

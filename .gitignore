@@ -1,4 +1,5 @@
 .env
+.env.docker
 cache.json
 /gwarr
-/build
+/dist
