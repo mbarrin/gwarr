@@ -1,3 +1,6 @@
+/*
+Package main is the main package for gwarr
+*/
 package main
 
 import (
@@ -14,13 +17,21 @@ func main() {
 	cachePath := flag.String("cache-path", "cache.json", "path to where the cache is stored")
 	port := flag.Int64("port", 31337, "run server on this port")
 	radarr := flag.Bool("radarr", true, "run the radarr endpoint")
+	sonarr := flag.Bool("sonarr", true, "run the sonarr endpoint")
+	debug := flag.Bool("debug", false, "enable debug logging")
 	flag.Parse()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logLevel := slog.LevelInfo
+	if *debug {
+		logLevel = slog.LevelDebug
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 	slog.SetDefault(logger)
 
 	channelID, slackBotToken, err := checkEnv()
 	if err != nil {
+		slog.With("package", "main").Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -28,7 +39,7 @@ func main() {
 
 	sc := slack.New(channelID, slackBotToken, *cachePath)
 
-	server.Start(*port, sc, *radarr)
+	server.Start(*port, sc, *radarr, *sonarr)
 }
 
 func checkEnv() (string, string, error) {

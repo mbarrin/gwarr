@@ -6,7 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/mbarrin/gwarr/internal/pkg/data"
 	"github.com/mbarrin/gwarr/internal/pkg/radarr"
+	"github.com/mbarrin/gwarr/internal/pkg/sonarr"
 	"github.com/mbarrin/gwarr/internal/pkg/state"
 )
 
@@ -26,23 +28,7 @@ var radarrOnGrab = radarr.Data{
 	ApplicationURL: "http://localhost",
 }
 
-var radarrOnDownload = radarr.Data{
-	Movie: radarr.Movie{
-		Title:       "Film",
-		Year:        1970,
-		ReleaseDate: "1970-01-01",
-		IMDBID:      "tt8415836",
-		TMDBID:      55,
-	},
-	MovieFile: &radarr.MovieFile{
-		Quality:      "1080p",
-		ReleaseGroup: "legit",
-	},
-	EventType:      "Grab",
-	ApplicationURL: "http://localhost",
-}
-
-var slackOnGrab = body{
+var slackRadarrOnGrab = body{
 	TS:      "",
 	Channel: "c123",
 	Blocks: []block{
@@ -56,89 +42,26 @@ var slackOnGrab = body{
 		},
 		{
 			Type: "section",
-			Text: &text{
-				Type: "mrkdwn",
-				Text: "http://localhost/movie/55",
+			Text: &text{Type: "mrkdwn", Text: "http://localhost/movie/55"},
+		},
+		{
+			Type: "section",
+			Fields: &[]text{
+				{Type: "mrkdwn", Text: "*Release Date:*\n1970-01-01"},
+				{Type: "mrkdwn", Text: "*IMDB:*\nhttps://imdb.com/title/tt8415836"},
 			},
 		},
 		{
 			Type: "section",
 			Fields: &[]text{
-				{
-					Type: "mrkdwn",
-					Text: "*Release Date:*\n1970-01-01",
-				},
-				{
-					Type: "mrkdwn",
-					Text: "*IMDB:*\nhttps://imdb.com/title/tt8415836",
-				},
-			},
-		},
-		{
-			Type: "section",
-			Fields: &[]text{
-				{
-					Type: "mrkdwn",
-					Text: "*Quality:*\n1080p",
-				},
-				{
-					Type: "mrkdwn",
-					Text: "*Release Group:*\nlegit",
-				},
+				{Type: "mrkdwn", Text: "*Quality:*\n1080p"},
+				{Type: "mrkdwn", Text: "*Release Group:*\nlegit"},
 			},
 		},
 	},
 }
 
-var slackOnDownload = body{
-	TS:      "123",
-	Channel: "c123",
-	Blocks: []block{
-		{
-			Type: "header",
-			Text: &text{
-				Type:  "plain_text",
-				Text:  ":large_green_circle: Downloaded: Film (1970)",
-				Emoji: true,
-			},
-		},
-		{
-			Type: "section",
-			Text: &text{
-				Type: "mrkdwn",
-				Text: "http://localhost/movie/55",
-			},
-		},
-		{
-			Type: "section",
-			Fields: &[]text{
-				{
-					Type: "mrkdwn",
-					Text: "*Release Date:*\n1970-01-01",
-				},
-				{
-					Type: "mrkdwn",
-					Text: "*IMDB:*\nhttps://imdb.com/title/tt8415836",
-				},
-			},
-		},
-		{
-			Type: "section",
-			Fields: &[]text{
-				{
-					Type: "mrkdwn",
-					Text: "*Quality:*\n1080p",
-				},
-				{
-					Type: "mrkdwn",
-					Text: "*Release Group:*\nlegit",
-				},
-			},
-		},
-	},
-}
-
-var slackUpdateOnGrab = body{
+var slackRadarrUpdateOnGrab = body{
 	TS:      "1234",
 	Channel: "c123",
 	Blocks: []block{
@@ -152,35 +75,116 @@ var slackUpdateOnGrab = body{
 		},
 		{
 			Type: "section",
+			Text: &text{Type: "mrkdwn", Text: "http://localhost/movie/55"},
+		},
+		{
+			Type: "section",
+			Fields: &[]text{
+				{Type: "mrkdwn", Text: "*Release Date:*\n1970-01-01"},
+				{Type: "mrkdwn", Text: "*IMDB:*\nhttps://imdb.com/title/tt8415836"},
+			},
+		},
+		{
+			Type: "section",
+			Fields: &[]text{
+				{Type: "mrkdwn", Text: "*Quality:*\n1080p"},
+				{Type: "mrkdwn", Text: "*Release Group:*\nlegit"},
+			},
+		},
+	},
+}
+
+var radarrOnDownload = radarr.Data{
+	Movie: radarr.Movie{
+		Title:       "Film",
+		Year:        1970,
+		ReleaseDate: "1970-01-01",
+		IMDBID:      "tt8415836",
+		TMDBID:      55,
+	},
+	MovieFile: &radarr.MovieFile{
+		Quality:      "1080p",
+		ReleaseGroup: "legit",
+	},
+	EventType:      "Download",
+	ApplicationURL: "http://localhost",
+}
+
+var slackRadarrOnDownload = body{
+	TS:      "123",
+	Channel: "c123",
+	Blocks: []block{
+		{
+			Type: "header",
 			Text: &text{
-				Type: "mrkdwn",
-				Text: "http://localhost/movie/55",
+				Type:  "plain_text",
+				Text:  ":large_green_circle: Downloaded: Film (1970)",
+				Emoji: true,
+			},
+		},
+		{
+			Type: "section",
+			Text: &text{Type: "mrkdwn", Text: "http://localhost/movie/55"},
+		},
+		{
+			Type: "section",
+			Fields: &[]text{
+				{Type: "mrkdwn", Text: "*Release Date:*\n1970-01-01"},
+				{Type: "mrkdwn", Text: "*IMDB:*\nhttps://imdb.com/title/tt8415836"},
 			},
 		},
 		{
 			Type: "section",
 			Fields: &[]text{
-				{
-					Type: "mrkdwn",
-					Text: "*Release Date:*\n1970-01-01",
-				},
-				{
-					Type: "mrkdwn",
-					Text: "*IMDB:*\nhttps://imdb.com/title/tt8415836",
-				},
+				{Type: "mrkdwn", Text: "*Quality:*\n1080p"},
+				{Type: "mrkdwn", Text: "*Release Group:*\nlegit"},
+			},
+		},
+	},
+}
+
+var sonarrOnDownload = sonarr.Data{
+	Series: sonarr.Series{
+		ID:     123,
+		Title:  "Name Of Show!",
+		IMDBID: "tt10574558",
+	},
+	Episodes: []sonarr.Episode{
+		{ID: 555, Title: "title", SeasonNumber: 4, EpisodeNumber: 1, AirDate: "1970-01-01"},
+	},
+	EpisodeFile:    &sonarr.EpisodeFile{Quality: "1080p", ReleaseGroup: "legit"},
+	EventType:      "Download",
+	ApplicationURL: "http://localhost",
+}
+
+var slackSonarrOnDownload = body{
+	TS:      "123",
+	Channel: "c123",
+	Blocks: []block{
+		{
+			Type: "header",
+			Text: &text{
+				Type:  "plain_text",
+				Text:  ":large_green_circle: Downloaded: Name Of Show! - 4x01 - title",
+				Emoji: true,
+			},
+		},
+		{
+			Type: "section",
+			Text: &text{Type: "mrkdwn", Text: "http://localhost/series/name-of-show"},
+		},
+		{
+			Type: "section",
+			Fields: &[]text{
+				{Type: "mrkdwn", Text: "*Release Date:*\n1970-01-01"},
+				{Type: "mrkdwn", Text: "*IMDB:*\nhttps://imdb.com/title/tt10574558"},
 			},
 		},
 		{
 			Type: "section",
 			Fields: &[]text{
-				{
-					Type: "mrkdwn",
-					Text: "*Quality:*\n1080p",
-				},
-				{
-					Type: "mrkdwn",
-					Text: "*Release Group:*\nlegit",
-				},
+				{Type: "mrkdwn", Text: "*Quality:*\n1080p"},
+				{Type: "mrkdwn", Text: "*Release Group:*\nlegit"},
 			},
 		},
 	},
@@ -198,9 +202,9 @@ func TestNew(t *testing.T) {
 			expected: Client{
 				url:     "https://slack.com/api/",
 				channel: "c1234",
-				token:   "xoxb-123",
+				token:   "Bearer xoxb-123",
 				client:  *http.DefaultClient,
-				cache:   state.New(""),
+				cache:   state.New("", true, true),
 			},
 		},
 	}
@@ -214,21 +218,21 @@ func TestNew(t *testing.T) {
 func TestOnGrabBody(t *testing.T) {
 	tests := map[string]struct {
 		channel  string
-		data     radarr.Data
+		data     data.Data
 		update   bool
 		expected body
 	}{
-		"new grab": {
+		"new movie grab": {
 			channel:  "c123",
-			data:     radarrOnGrab,
+			data:     &radarrOnGrab,
 			update:   false,
-			expected: slackOnGrab,
+			expected: slackRadarrOnGrab,
 		},
-		"updated grab": {
+		"updated movie grab": {
 			channel:  "c123",
-			data:     radarrOnGrab,
+			data:     &radarrOnGrab,
 			update:   true,
-			expected: slackUpdateOnGrab,
+			expected: slackRadarrUpdateOnGrab,
 		},
 	}
 
@@ -237,7 +241,7 @@ func TestOnGrabBody(t *testing.T) {
 		if tc.update {
 			ts = "1234"
 		}
-		actual := RadarrOnGrabBody(tc.channel, tc.data, ts)
+		actual := onGrabInfo(tc.channel, tc.data, ts)
 		assert.Equal(t, tc.expected, actual)
 	}
 }
@@ -245,20 +249,26 @@ func TestOnGrabBody(t *testing.T) {
 func TestOnDownloadBody(t *testing.T) {
 	tests := map[string]struct {
 		channel  string
-		data     radarr.Data
+		data     data.Data
 		ts       string
 		expected body
 	}{
-		"new download": {
+		"new movie download": {
 			channel:  "c123",
-			data:     radarrOnDownload,
+			data:     &radarrOnDownload,
 			ts:       "123",
-			expected: slackOnDownload,
+			expected: slackRadarrOnDownload,
+		},
+		"new episode download": {
+			channel:  "c123",
+			data:     &sonarrOnDownload,
+			ts:       "123",
+			expected: slackSonarrOnDownload,
 		},
 	}
 
 	for _, tc := range tests {
-		actual := RadarrOnDownloadBody(tc.channel, tc.data, tc.ts)
+		actual := onDownloadInfo(tc.channel, tc.data, tc.ts)
 		assert.Equal(t, tc.expected, actual)
 	}
 }

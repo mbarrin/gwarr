@@ -1,3 +1,7 @@
+/*
+Package state handles storing data about messages sent to Slack
+This allows updating of existing messages
+*/
 package state
 
 import (
@@ -7,46 +11,56 @@ import (
 	"os"
 )
 
-type entry struct {
-	TS    string `json:"ts,omitempty"`
-	State string `json:"state,omitempty"`
-}
-
+// State defines the location and cache format
 type State struct {
 	Path  string
 	Cache cache
 }
 
+type entry struct {
+	TS    string `json:"ts,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
 type entries map[int]entry
 type cache map[string]entries
 
-func New(cachePath string) State {
+// New creates a new in memory cache that is stored as json on disk
+func New(cachePath string, radarr, sonarr bool) State {
 	s := State{
 		Path:  cachePath,
 		Cache: make(cache),
 	}
-	s.Cache["radarr"] = make(entries)
+	if radarr {
+		s.Cache["radarr"] = make(entries)
+	}
+	if sonarr {
+		s.Cache["sonarr"] = make(entries)
+	}
 
 	err := s.read()
 	if err != nil {
 		slog.With("package", "state").Error("Could not read config: " + err.Error())
 	}
 
-	fmt.Println(s)
+	slog.With("package", "state").Debug(fmt.Sprintf("%v", s))
 
 	return s
 }
 
+// Set stores the Slack message ID and its state
 func (s State) Set(t string, id int, ts string, event string) {
 	s.Cache[t].set(id, ts, event)
 	s.write()
 }
 
+// Delete removes the info about a Slack message ID
 func (s State) Delete(t string, id int) {
 	s.Cache[t].delete(id)
 	s.write()
 }
 
+// Timestamp returns a Slack message ID for a release
 func (s State) Timestamp(t string, id int) string {
 	e, _ := s.Cache[t].get(id)
 	return e.TS
