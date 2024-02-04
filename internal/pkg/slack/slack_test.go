@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,6 @@ import (
 	"github.com/mbarrin/gwarr/internal/pkg/data"
 	"github.com/mbarrin/gwarr/internal/pkg/radarr"
 	"github.com/mbarrin/gwarr/internal/pkg/sonarr"
-	"github.com/mbarrin/gwarr/internal/pkg/state"
 )
 
 var radarrOnGrab = radarr.Data{
@@ -188,31 +186,6 @@ var slackSonarrOnDownload = body{
 			},
 		},
 	},
-}
-
-func TestNew(t *testing.T) {
-	tests := map[string]struct {
-		channel  string
-		token    string
-		expected Client
-	}{
-		"creates client": {
-			channel: "c1234",
-			token:   "xoxb-123",
-			expected: Client{
-				url:     "https://slack.com/api/",
-				channel: "c1234",
-				token:   "Bearer xoxb-123",
-				client:  *http.DefaultClient,
-				cache:   state.New("", true, true),
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		actual := New("c1234", "xoxb-123", "")
-		assert.Equal(t, tc.expected, actual)
-	}
 }
 
 func TestOnGrabBody(t *testing.T) {

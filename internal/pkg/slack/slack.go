@@ -2,6 +2,7 @@ package slack
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,9 +10,12 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/mbarrin/gwarr/internal/pkg/cache"
 	"github.com/mbarrin/gwarr/internal/pkg/data"
-	"github.com/mbarrin/gwarr/internal/pkg/state"
+	"github.com/redis/go-redis/v9"
 )
+
+var ctx = context.Background()
 
 type body struct {
 	Channel string  `json:"channel,omitempty"`
@@ -44,17 +48,17 @@ type Client struct {
 	channel string
 	token   string
 	client  http.Client
-	cache   state.State
+	redis   *redis.Client
 }
 
 // New creates a new Slack client
-func New(channel string, token string, cachePath string) Client {
+func New(channel string, token string) Client {
 	sc := Client{
 		url:     "https://slack.com/api/",
 		channel: channel,
 		token:   "Bearer " + token,
 		client:  *http.DefaultClient,
-		cache:   state.New(cachePath, true, true),
+		redis:   cache.NewRedis(),
 	}
 
 	slog.With("package", "slack").Info("Slack client initialised")
@@ -72,7 +76,11 @@ func (sc *Client) newRequest(b []byte, m string) *http.Request {
 
 // Post posts a Radarr webhook formatted to a Slack message
 func (sc *Client) Post(d data.Data) error {
-	ts := sc.cache.Timestamp(d.Service(), d.ID())
+	ts, err := sc.redis.HGet(ctx, d.Service(), fmt.Sprint(d.ID())).Result()
+	if err != nil {
+		slog.Debug(fmt.Sprintf("Could not find timestamp for ID: %d for %s", d.ID(), d.Service()))
+	}
+	slog.Debug(ts)
 
 	var r *http.Request
 	switch d.Type() {
@@ -153,12 +161,18 @@ func (sc *Client) Post(d data.Data) error {
 
 	if response.OK {
 		if d.Type() == "MovieDelete" || d.Type() == "Download" {
-			sc.cache.Delete(d.Service(), d.ID())
+			err := sc.redis.HDel(ctx, d.Service(), fmt.Sprint(d.ID())).Err()
+			if err != nil {
+				slog.Error(err.Error())
+			}
 		} else {
-			sc.cache.Set(d.Service(), d.ID(), response.TS, d.Type())
+			err := sc.redis.HSet(ctx, d.Service(), d.ID(), response.TS).Err()
+			if err != nil {
+				slog.Error(err.Error())
+			}
 		}
 	} else {
-		slog.Debug(response.Error)
+		slog.Error(response.Error)
 		slog.Debug(sc.token)
 	}
 
