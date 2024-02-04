@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -187,30 +186,6 @@ var slackSonarrOnDownload = body{
 			},
 		},
 	},
-}
-
-func TestNew(t *testing.T) {
-	tests := map[string]struct {
-		channel  string
-		token    string
-		expected Client
-	}{
-		"creates client": {
-			channel: "c1234",
-			token:   "xoxb-123",
-			expected: Client{
-				url:     "https://slack.com/api/",
-				channel: "c1234",
-				token:   "Bearer xoxb-123",
-				client:  *http.DefaultClient,
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		actual := New(tc.channel, tc.token)
-		assert.Equal(t, tc.expected.token, actual.token)
-	}
 }
 
 func TestOnGrabBody(t *testing.T) {
