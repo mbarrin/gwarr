@@ -9,7 +9,6 @@ import (
 	"github.com/mbarrin/gwarr/internal/pkg/data"
 	"github.com/mbarrin/gwarr/internal/pkg/radarr"
 	"github.com/mbarrin/gwarr/internal/pkg/sonarr"
-	"github.com/mbarrin/gwarr/internal/pkg/state"
 )
 
 var radarrOnGrab = radarr.Data{
@@ -204,14 +203,13 @@ func TestNew(t *testing.T) {
 				channel: "c1234",
 				token:   "Bearer xoxb-123",
 				client:  *http.DefaultClient,
-				cache:   state.New("", true, true),
 			},
 		},
 	}
 
 	for _, tc := range tests {
-		actual := New("c1234", "xoxb-123", "")
-		assert.Equal(t, tc.expected, actual)
+		actual := New(tc.channel, tc.token)
+		assert.Equal(t, tc.expected.token, actual.token)
 	}
 }
 

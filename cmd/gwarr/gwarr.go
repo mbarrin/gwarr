@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-	cachePath := flag.String("cache-path", "cache.json", "path to where the cache is stored")
 	port := flag.Int64("port", 31337, "run server on this port")
 	radarr := flag.Bool("radarr", true, "run the radarr endpoint")
 	sonarr := flag.Bool("sonarr", true, "run the sonarr endpoint")
@@ -37,7 +36,7 @@ func main() {
 
 	slog.With("package", "main").Info("GWARR is starting")
 
-	sc := slack.New(channelID, slackBotToken, *cachePath)
+	sc := slack.New(channelID, slackBotToken)
 
 	server.Start(*port, sc, *radarr, *sonarr)
 }
@@ -58,5 +57,4 @@ func checkEnv() (string, string, error) {
 	}
 
 	return "", "", errors.New("missing required tokens. Check logs")
-
 }
