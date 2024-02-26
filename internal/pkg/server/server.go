@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mbarrin/gwarr/internal/pkg/data"
 	"github.com/mbarrin/gwarr/internal/pkg/radarr"
 	"github.com/mbarrin/gwarr/internal/pkg/slack"
 	"github.com/mbarrin/gwarr/internal/pkg/sonarr"
@@ -23,11 +24,11 @@ func Start(port int64, client slack.Client, radarr, sonarr bool) {
 	sc = client
 
 	if radarr {
-		http.HandleFunc("/radarr", radarrWebhook)
+		http.HandleFunc("/radarr", webhook)
 	}
 
 	if sonarr {
-		http.HandleFunc("/sonarr", sonarrWebhook)
+		http.HandleFunc("/sonarr", webhook)
 	}
 
 	http.Handle("/metrics", promhttp.Handler())
@@ -41,7 +42,7 @@ func Start(port int64, client slack.Client, radarr, sonarr bool) {
 	}
 }
 
-func radarrWebhook(w http.ResponseWriter, r *http.Request) {
+func webhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Invalid Method", 405)
 		return
@@ -55,45 +56,23 @@ func radarrWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	var data data.Data
+	var err error
+
+	if r.URL.Path == "/sonarr" {
+		data, err = sonarr.ParseWebhook(body)
+	} else if r.URL.Path == "/radarr" {
+		data, err = radarr.ParseWebhook(body)
+	}
+
 	slog.With("package", "server").Debug(string(body))
-	radarr, err := radarr.ParseWebhook(body)
 	if err != nil {
 		slog.With("package", "server").Error(err.Error())
 		http.Error(w, "Invalid Content", 400)
 		return
 	}
 
-	err = sc.Post(radarr)
-	if err != nil {
-		slog.With("package", "server").Error(err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-}
-
-func sonarrWebhook(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Invalid Method", 405)
-		return
-	}
-
-	body, _ := io.ReadAll(r.Body)
-	defer func() {
-		err := r.Body.Close()
-		if err != nil {
-			slog.With("package", "server").Error("Failed to close body")
-		}
-	}()
-
-	slog.With("package", "server").Debug(string(body))
-	sonarr, err := sonarr.ParseWebhook(body)
-	if err != nil {
-		slog.With("package", "server").Error(err.Error())
-		http.Error(w, "Invalid Content", 400)
-		return
-	}
-
-	err = sc.Post(sonarr)
+	err = sc.Post(data)
 	if err != nil {
 		slog.With("package", "server").Error(err.Error())
 		http.Error(w, err.Error(), 500)
