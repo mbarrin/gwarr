@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/mbarrin/gwarr/internal/pkg/data"
 	"github.com/mbarrin/gwarr/internal/pkg/radarr"
@@ -20,7 +19,7 @@ import (
 var sc slack.Client
 
 // Start starts a server to receive webhooks
-func Start(port int64, client slack.Client, radarr, sonarr bool) {
+func Start(port int64, client slack.Client, radarr, sonarr bool) error {
 	sc = client
 
 	if radarr {
@@ -38,8 +37,10 @@ func Start(port int64, client slack.Client, radarr, sonarr bool) {
 	err := http.ListenAndServe(p, nil)
 	if err != nil {
 		slog.With("package", "server").Error(err.Error())
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }
 
 func webhook(w http.ResponseWriter, r *http.Request) {

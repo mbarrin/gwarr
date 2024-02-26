@@ -40,7 +40,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	server.Start(*port, *sc, *radarr, *sonarr)
+	err = server.Start(*port, *sc, *radarr, *sonarr)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	slog.With("package", "main").Info("GWARR is running")
 }
