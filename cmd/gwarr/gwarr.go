@@ -18,6 +18,7 @@ func main() {
 	radarr := flag.Bool("radarr", true, "run the radarr endpoint")
 	sonarr := flag.Bool("sonarr", true, "run the sonarr endpoint")
 	debug := flag.Bool("debug", false, "enable debug logging")
+	redisAddr := flag.String("redis-addr", "localhost:6379", "override the redis address")
 	flag.Parse()
 
 	logLevel := slog.LevelInfo
@@ -36,7 +37,7 @@ func main() {
 
 	slog.With("package", "main").Info("GWARR is starting")
 
-	sc := slack.New(channelID, slackBotToken)
+	sc := slack.New(channelID, slackBotToken, *redisAddr)
 
 	server.Start(*port, sc, *radarr, *sonarr)
 }
