@@ -1,5 +1,6 @@
 package data
 
+// Data defines the interface for various *arr types
 type Data interface {
 	ID() int
 	IMDBID() string

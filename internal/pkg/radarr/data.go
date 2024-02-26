@@ -127,15 +127,13 @@ func (d *Data) URL() string         { return fmt.Sprintf("%s/movie/%d", d.Applic
 func (d *Data) Quality() string {
 	if d.EventType == "Grab" {
 		return d.Release.Quality
-	} else {
-		return d.MovieFile.Quality
 	}
+	return d.MovieFile.Quality
 }
 
 func (d *Data) ReleaseGroup() string {
 	if d.EventType == "Grab" {
 		return d.Release.ReleaseGroup
-	} else {
-		return d.MovieFile.ReleaseGroup
 	}
+	return d.MovieFile.ReleaseGroup
 }

@@ -3,14 +3,14 @@ package cache
 import (
 	"context"
 	"log/slog"
-	"os"
 
 	"github.com/redis/go-redis/v9"
 )
 
 var ctx = context.Background()
 
-func NewRedis(address string) *redis.Client {
+// New creates a new Redis client and it can talk to the server
+func New(address string) (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     address,
 		Password: "", // no password set
@@ -20,8 +20,8 @@ func NewRedis(address string) *redis.Client {
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
 		slog.With("package", "cache").Error(err.Error())
-		os.Exit(1)
+		return nil, err
 	}
 
-	return rdb
+	return rdb, nil
 }

@@ -52,17 +52,22 @@ type Client struct {
 }
 
 // New creates a new Slack client
-func New(channel string, token string, redisAddr string) Client {
+func New(channel string, token string, redisAddr string) (*Client, error) {
+	cache, err := cache.New(redisAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	sc := Client{
 		url:     "https://slack.com/api/",
 		channel: channel,
 		token:   "Bearer " + token,
 		client:  *http.DefaultClient,
-		redis:   cache.NewRedis(redisAddr),
+		redis:   cache,
 	}
 
 	slog.With("package", "slack").Info("Slack client initialised")
-	return sc
+	return &sc, nil
 }
 
 func (sc *Client) newRequest(b []byte, m string) *http.Request {
@@ -136,7 +141,6 @@ func (sc *Client) Post(d data.Data) error {
 		}
 
 		r = sc.newRequest(jb, "chat.postMessage")
-		slog.Debug(fmt.Sprintf("%#v", d))
 	}
 
 	resp, err := sc.client.Do(r)
