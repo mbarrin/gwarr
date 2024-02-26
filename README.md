@@ -12,7 +12,7 @@ It sits on a host you own, you point your \*arr notifications at it, and it make
 # Features
 
 * Updates messages for certain state changes (added -> grabbed -> deleted)
- * This is managed via a very dumb inmemory cache that writes to disk on update, and it attempted to be read at boot
+ * Redis is used as the cache now. (There might be some bugs)
 * Emojis :star:
 * Links back to your \*arr instance
 * Adds some (currently very limited) metadata to the message
