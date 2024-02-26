@@ -4,4 +4,4 @@ RUN mkdir -p /gwarr
 
 COPY ./dist/gwarr /gwarr/gwarr
 
-ENTRYPOINT /gwarr/gwarr -debug
+ENTRYPOINT ["/gwarr/gwarr"]
