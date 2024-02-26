@@ -35,22 +35,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.With("package", "main").Info("GWARR is starting")
+	sc, err := slack.New(channelID, slackBotToken, *redisAddr)
+	if err != nil {
+		os.Exit(1)
+	}
 
-	sc := slack.New(channelID, slackBotToken, *redisAddr)
+	err = server.Start(*port, *sc, *radarr, *sonarr)
+	if err != nil {
+		os.Exit(1)
+	}
 
-	server.Start(*port, sc, *radarr, *sonarr)
+	slog.With("package", "main").Info("GWARR is running")
 }
 
 func checkEnv() (string, string, error) {
 	channelID, channelIDExists := os.LookupEnv("GWARR_SLACK_CHANNEL_ID")
 	if !channelIDExists {
-		slog.With("package", "main").Error("Missing $GWARR_SLACK_CHANNEL_ID")
+		slog.With("package", "main").Error("Missing GWARR_SLACK_CHANNEL_ID")
 	}
 
 	slackBotToken, slackBotTokenExists := os.LookupEnv("GWARR_SLACK_BOT_TOKEN")
 	if !slackBotTokenExists {
-		slog.With("package", "main").Error("Missing $GWARR_SLACK_BOT_TOKEN")
+		slog.With("package", "main").Error("Missing GWARR_SLACK_BOT_TOKEN")
 	}
 
 	if channelIDExists && slackBotTokenExists {

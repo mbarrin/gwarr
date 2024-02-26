@@ -134,15 +134,13 @@ func (d *Data) Title() string {
 func (d *Data) Quality() string {
 	if d.EventType == "Grab" {
 		return d.Release.Quality
-	} else {
-		return d.EpisodeFile.Quality
 	}
+	return d.EpisodeFile.Quality
 }
 
 func (d *Data) ReleaseGroup() string {
 	if d.EventType == "Grab" {
 		return d.Release.ReleaseGroup
-	} else {
-		return d.EpisodeFile.ReleaseGroup
 	}
+	return d.EpisodeFile.ReleaseGroup
 }
