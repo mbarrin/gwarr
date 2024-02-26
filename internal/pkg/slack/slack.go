@@ -52,13 +52,13 @@ type Client struct {
 }
 
 // New creates a new Slack client
-func New(channel string, token string) Client {
+func New(channel string, token string, redisAddr string) Client {
 	sc := Client{
 		url:     "https://slack.com/api/",
 		channel: channel,
 		token:   "Bearer " + token,
 		client:  *http.DefaultClient,
-		redis:   cache.NewRedis(),
+		redis:   cache.NewRedis(redisAddr),
 	}
 
 	slog.With("package", "slack").Info("Slack client initialised")
